@@ -1,0 +1,39 @@
+---
+title: Linux系统下的Jenkins的简要安装方法
+date: 2018-03-04
+tags: [Linux, Jenkins, 持续集成]
+categories: 持续集成
+---
+# 1 下载软件包
+- **Jenkins** 
+访问 https://jenkins.io/download/ 下载最新（LTS版本）的 war 包。
+- **Tomcat**
+访问 https://tomcat.apache.org/download-90.cgi 下载最新的 Tomcat 9.0 。
+- **cloudbees-folder**
+访问 http://ftp.icm.edu.pl/packages/jenkins/plugins/cloudbees-folder/ 下载最新的 cloudbees-folder 插件。
+
+# 2 环境配置
+1. 提前安装好**Java 8**，在 `/etc/profile`  文件（或其他配置文件）中配置好环境变量 `JAVA_HOME`。
+1. 解压 Tomcat 压缩包至 `~/Jenkins/` 目录下，给 `~/Jenkins/apache-tomcat-9.0.5/bin` 目录下的 `catalina.sh`、`shutdown.sh` 和 `startup.sh` 增加执行权限。(`chmod +x *.sh`)
+1. 将第一步下载好的 `jenkins.war` 放至 `~/Jenkins/apache-tomcat-9.0.5/webapps/` 目录下。
+
+# 3 启动 Tomcat
+1. 执行 `~/Jenkins/apache-tomcat-9.0.5/bin/startup.sh` 脚本即可启动 Tomcat ( `./startup.sh`  )。
+Tomcat 启动后，jenkins.war 会被自动解压，生成一个 jenkins 目录。
+1. 浏览器访问 `http://localhost:8080/jenkins/` 会进入Jenkins的解锁界面（Unlock Jenkins），需要输入管理员密码才能继续访问 Jenkins。
+管理员密码存在与一个名为 `initialAdminPassword` 的文件中，该文件的位置在解锁界面有显示（`~/.jenkins/secrets/initialAdminPassword`）。 
+1. 输入管理员密码之后会进入插件安装界面，有的机器安装 Jenkins 不能访问 https 开头的网址，而下载插件需要访问 https://updates.jenkins.io/current/update-center.json ，所以可能会出现 **Offline** 。
+此时需要更改一个名为 `hudson.model.UpdateCenter.xml` 的文件，该文件位于 `~/.jenkins/` 目录下。将文件中 url 标签内的网址替换为一个以 http 开头的镜像网站的URL，如 http://mirror.xmission.com/jenkins/updates/update-center.json 。
+重启 Tomcat（先执行 `shutdown.sh` 关闭，再执行 `startup.sh` 开启）。
+1. 再次进入插件安装界面应该就可以看到内容了，但是点击安装插件会出现一个错误：`No such plugin: cloudbees-folder` ，这个插件 jenkins.war 中默认没有包含，所以需要手动安装一下。
+安装方法：将第一步下载的 `cloudbees-folder.hpi` 文件放到 `~/Jenkins/apache-tomcat-9.0.5/webapps/jenkins/WEB-INF/detached-plugins/` 目录下 和 `~/.jenkins/plugins/` 目录下即可。
+
+# 4 重设管理员密码（可选）
+进入 Jenkins 之后，可以在 **系统管理 --> 管理用户** 中重新设置 admin 账户的密码，以免下次登录还需要查看 `initialAdminPassword` 文件中的密码。
+
+# 5 安装插件（可选）
+可以在 **系统管理 --> 管理插件** 界面安装一些插件方便使用（比如Pipeline、BlueOcean、Gerrit Trigger、Timestamper、JIRA等等），如果在线安装插件失败，也可以先通过浏览器把插件(.hpi)下载到本地，然后通过 "**高级**" 选项卡中的上传插件功能安装。
+
+> 注：以上只是安装Jenkins的一种方法。
+除此之外，还可以通过 `java -Djsse.enableSNIExtension=false -jar jenkins.war --httpPort=8081` 命令安装，因为 jenkins.war 有一个内置的 Jetty Server，不再详述。
+Jenkins 也提供了各个平台的二进制安装包，直接使用安装包安装也很方便。
